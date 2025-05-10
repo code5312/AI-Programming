@@ -1,0 +1,144 @@
+[
+    {
+    "code": "14395001",
+    "name": "인공지능프로그래밍",
+    "professor": "박기성",
+    "credits": 3,
+    "time_slots": [
+      {
+        "day": 2,
+        "start_time": "14:00",
+        "end_time": "16:00"
+      },
+      {
+        "day": 3,
+        "start_time": "15:00",
+        "end_time": "16:00"
+      }
+    ],
+    "classroom": "AI공학관 407호",
+    "capacity": 60,
+    "current_enrolled": 0
+  },
+  {
+    "code": "13119002",
+    "name": "인공지능개론",
+    "professor": "박기성",
+    "credits": 3,
+    "time_slots": [
+      {
+        "day": 2,
+        "start_time": "13:00",
+        "end_time": "14:00"
+      },
+      {
+        "day": 3,
+        "start_time": "13:00",
+        "end_time": "15:00"
+      }
+    ],
+    "classroom": "AI공학관 407호",
+    "capacity": 60,
+    "current_enrolled": 0
+  },
+  {
+    "code": "14207002",
+    "name": "웹프로그래밍",
+    "professor": "김태규",
+    "credits": 3,
+    "time_slots": [
+      {
+        "day": 0,
+        "start_time": "12:00",
+        "end_time": "13:00"
+      },
+      {
+        "day": 4,
+        "start_time": "12:00",
+        "end_time": "14:00"
+      }
+    ],
+    "classroom": "AI관-407",
+    "capacity": 60,
+    "current_enrolled": 0
+  },
+  {
+    "code": "03671002",
+    "name": "소프트웨어공학",
+    "professor": "김태규",
+    "credits": 3,
+    "time_slots": [
+      {
+        "day": 0,
+        "start_time": "09:00",
+        "end_time": "11:00"
+      },
+      {
+        "day": 2,
+        "start_time": "09:00",
+        "end_time": "10:00"
+      }
+    ],
+    "classroom": "AI관-407",
+    "capacity": 60,
+    "current_enrolled": 0
+  },
+  {
+    "code": "14399001",
+    "name": "제어시스템보안",
+    "professor": "이주현",
+    "credits": 3,
+    "time_slots": [
+      {
+        "day": 4,
+        "start_time": "09:00",
+        "end_time": "12:00"
+      }
+    ],
+    "classroom": "AI관-407",
+    "capacity": 60,
+    "current_enrolled": 0
+  },
+  {
+    "code": "13971001",
+    "name": "시스템보안",
+    "professor": "전승호",
+    "credits": 3,
+    "time_slots": [
+      {
+        "day": 2,
+        "start_time": "16:00",
+        "end_time": "18:00"
+      },
+      {
+        "day": 3,
+        "start_time": "16:00",
+        "end_time": "17:00"
+      }
+    ],
+    "classroom": "AI관-407",
+    "capacity": 60,
+    "current_enrolled": 0
+  },
+  {
+    "code": "14394001",
+    "name": "현대암호학",
+    "professor": "이석준",
+    "credits": 3,
+    "time_slots": [
+      {
+        "day": 0,
+        "start_time": "15:00",
+        "end_time": "17:00"
+      },
+      {
+        "day": 1,
+        "start_time": "14:00",
+        "end_time": "15:00"
+      }
+    ],
+    "classroom": "AI관-503",
+    "capacity": 60,
+    "current_enrolled": 0
+  }
+]
