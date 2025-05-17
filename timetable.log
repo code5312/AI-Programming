@@ -1,0 +1,47 @@
+2025-05-17 14:16:42,936 - INFO - 과목 데이터 로드 완료: 7개 과목
+2025-05-17 14:16:42,973 - ERROR - 프로그램 실행 중 오류 발생: 모델 훈련 중 오류 발생: y contains previously unseen labels: '인공지능프로그래밍'
+2025-05-17 14:17:45,309 - INFO - 과목 데이터 로드 완료: 7개 과목
+2025-05-17 14:17:45,409 - INFO - 모델 훈련 완료 - MSE: 0.0009, R2: -2.8458
+2025-05-17 14:17:46,345 - WARNING - 특성 중요도 시각화 중 오류 발생: [Errno 2] No such file or directory: 'C:\\Users\\ASUS\\OneDrive\\Desktop\\GitHub\\FuckingAI\\models\\feature_importance.png'
+2025-05-17 14:17:46,365 - INFO - AI 모델 훈련 완료
+2025-05-17 14:17:46,366 - ERROR - 프로그램 실행 중 오류 발생: 시간표 추천 중 오류 발생: 'TimeSlot' object has no attribute 'overlaps_with'
+2025-05-17 14:18:25,222 - INFO - 과목 데이터 로드 완료: 7개 과목
+2025-05-17 14:18:25,325 - INFO - 모델 훈련 완료 - MSE: 0.0009, R2: -2.8458
+2025-05-17 14:18:25,642 - INFO - AI 모델 훈련 완료
+2025-05-17 14:18:25,649 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:18:25,649 - ERROR - 프로그램 실행 중 오류 발생: 시간표 추천 중 오류 발생: 'UserPreferences' object has no attribute 'must_take_courses'
+2025-05-17 14:19:23,585 - INFO - 과목 데이터 로드 완료: 7개 과목
+2025-05-17 14:19:23,669 - INFO - 모델 훈련 완료 - MSE: 0.0009, R2: -2.8458
+2025-05-17 14:19:23,987 - INFO - AI 모델 훈련 완료
+2025-05-17 14:19:23,987 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:19:23,987 - ERROR - 프로그램 실행 중 오류 발생: 시간표 추천 중 오류 발생: 'UserPreferences' object has no attribute 'preferred_classrooms'
+2025-05-17 14:19:45,478 - INFO - 과목 데이터 로드 완료: 7개 과목
+2025-05-17 14:19:45,595 - INFO - 모델 훈련 완료 - MSE: 0.0009, R2: -2.8458
+2025-05-17 14:19:46,314 - INFO - AI 모델 훈련 완료
+2025-05-17 14:19:46,314 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:19:46,314 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:19:46,314 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:19:46,314 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:19:46,314 - INFO - 시간표 1 생성 완료 (점수: 3.00)
+2025-05-17 14:19:46,323 - INFO - 시간표 2 생성 완료 (점수: 3.00)
+2025-05-17 14:19:46,326 - INFO - 시간표 3 생성 완료 (점수: 3.00)
+2025-05-17 14:20:41,267 - INFO - 과목 데이터 로드 완료: 7개 과목
+2025-05-17 14:20:41,337 - INFO - 모델 훈련 완료 - MSE: 0.0009, R2: -2.8458
+2025-05-17 14:20:41,631 - INFO - AI 모델 훈련 완료
+2025-05-17 14:20:41,631 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:20:41,631 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:20:41,631 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:20:41,631 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:20:41,635 - INFO - 시간표 1 생성 완료 (점수: 3.00)
+2025-05-17 14:20:41,637 - INFO - 시간표 2 생성 완료 (점수: 3.00)
+2025-05-17 14:20:41,637 - INFO - 시간표 3 생성 완료 (점수: 3.00)
+2025-05-17 14:21:35,358 - INFO - 과목 데이터 로드 완료: 7개 과목
+2025-05-17 14:21:35,456 - INFO - 모델 훈련 완료 - MSE: 0.0009, R2: -2.8458
+2025-05-17 14:21:35,766 - INFO - AI 모델 훈련 완료
+2025-05-17 14:21:35,766 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:21:35,766 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:21:35,766 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:21:35,766 - WARNING - 모델 예측 중 오류 발생, 규칙 기반 점수 사용: 'UserPreferences' object has no attribute 'preferred_start_time'
+2025-05-17 14:21:35,771 - INFO - 시간표 1 생성 완료 (점수: 3.00)
+2025-05-17 14:21:35,774 - INFO - 시간표 2 생성 완료 (점수: 3.00)
+2025-05-17 14:21:35,774 - INFO - 시간표 3 생성 완료 (점수: 3.00)
