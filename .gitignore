@@ -19,3 +19,9 @@ env/
 models/*.pkl
 models/*.joblib
 *.csv
+# courses.csv는 산출물이 아니라 프로그램의 실제 입력 데이터이므로 추적 대상에 포함
+!courses.csv
+recommended_timetable.html
+feature_importance.png
+timetable.log
+schedules/
