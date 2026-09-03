@@ -22,10 +22,13 @@ class CourseError(Exception):
 
 # ---- 시간표 도메인 규칙 ----
 DAY_MIN, DAY_MAX = 0, 4  # 0: 월요일 ~ 4: 금요일
+DAY_NAMES = ["월", "화", "수", "목", "금"]
 CLASS_TIME_MIN, CLASS_TIME_MAX = time(9, 0), time(18, 0)
 CLASS_DURATION_MIN_HOURS, CLASS_DURATION_MAX_HOURS = 1, 4
 COURSE_CREDITS_MIN, COURSE_CREDITS_MAX = 1, 3
 TOTAL_CREDITS_MIN, TOTAL_CREDITS_MAX = 1, 21
+DIFFICULTY_MIN, DIFFICULTY_MAX = 0.0, 1.0
+RATING_MIN, RATING_MAX = 0.0, 5.0
 
 
 @dataclass
@@ -135,10 +138,10 @@ class Course:
             raise CourseError("수용 인원은 0보다 커야 합니다.")
         if not 0 <= self.current_enrolled <= self.capacity:
             raise CourseError("현재 수강 인원은 0 이상이고 수용 인원 이하여야 합니다.")
-        if not 0 <= self.difficulty <= 1:
-            raise CourseError("난이도는 0부터 1 사이여야 합니다.")
-        if not 0 <= self.rating <= 5:
-            raise CourseError("평점은 0부터 5 사이여야 합니다.")
+        if not DIFFICULTY_MIN <= self.difficulty <= DIFFICULTY_MAX:
+            raise CourseError(f"난이도는 {DIFFICULTY_MIN}부터 {DIFFICULTY_MAX} 사이여야 합니다.")
+        if not RATING_MIN <= self.rating <= RATING_MAX:
+            raise CourseError(f"평점은 {RATING_MIN}부터 {RATING_MAX} 사이여야 합니다.")
 
     def _validate_prerequisites(self):
         """선수과목 정보를 검증"""

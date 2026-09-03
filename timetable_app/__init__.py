@@ -10,9 +10,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Windows 콘솔은 로캘에 따라 기본 인코딩이 cp949 등으로 잡혀 있어, print()에 쓰는
-# 이모지(✅/❌/ℹ️)가 UnicodeEncodeError를 일으킬 수 있다. 콘솔을 UTF-8로 강제해
-# 실행 환경(터미널/IDE 실행 버튼 등)에 상관없이 항상 출력되도록 함.
-for _stream in (sys.stdout, sys.stderr):
+# 이모지(✅/❌/ℹ️)가 UnicodeEncodeError를 일으킬 수 있고, stdin도 마찬가지로 cp949로
+# 읽히면 한글 입력(예: 교수명)이 디코딩 과정에서 surrogateescape로 깨져 있다가 다시
+# 출력할 때 UnicodeEncodeError를 낼 수 있다. 입출력을 전부 UTF-8로 강제해 실행 환경
+# (터미널/IDE 실행 버튼 등)에 상관없이 한글 입출력이 항상 되도록 함.
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
     try:
         _stream.reconfigure(encoding="utf-8")
     except (AttributeError, ValueError):

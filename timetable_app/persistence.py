@@ -23,6 +23,29 @@ CSV_REQUIRED_COLUMNS = [
     'day', 'start_time', 'end_time',
 ]
 
+# 같은 code로 묶인 여러 행 중 시간(day/start_time/end_time)을 제외한 나머지는
+# 전부 같은 과목의 속성이므로 값이 같아야 한다. 다르면 첫 번째 행 값만 쓰지만
+# (아래 로직), 사람이 엑셀에서 손으로 채우다 실수로 값을 다르게 적어도 조용히
+# 넘어가지 않도록 여기서 경고를 남긴다.
+_CONSISTENCY_COLUMNS = [
+    'name', 'professor', 'credits', 'classroom', 'capacity',
+    'current_enrolled', 'difficulty', 'rating', 'prerequisites', 'score',
+]
+
+
+def _warn_on_inconsistent_group(code: str, group: pd.DataFrame) -> None:
+    if len(group) <= 1:
+        return
+    for column in _CONSISTENCY_COLUMNS:
+        if column not in group.columns:
+            continue
+        values = group[column].dropna().unique().tolist()
+        if len(values) > 1:
+            logging.warning(
+                f"과목 코드 '{code}'의 여러 행에서 '{column}' 값이 서로 다릅니다 {values} "
+                "- 첫 번째 행의 값만 사용됩니다."
+            )
+
 
 def _parse_hhmm(value: Any) -> time:
     hour, minute = map(int, str(value).strip().split(':'))
@@ -56,6 +79,7 @@ def load_courses_from_csv(csv_file: str) -> Tuple[List[Course], Optional[pd.Data
     score_rows: List[Dict[str, Any]] = []
 
     for code, group in df.groupby('code', sort=False):
+        _warn_on_inconsistent_group(code, group)
         first = group.iloc[0]
         try:
             time_slots = []

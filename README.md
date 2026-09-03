@@ -69,6 +69,14 @@ pip install numpy pandas scikit-learn matplotlib seaborn
 python timetable.py
 ```
 
+### 4. (선택) 테스트 실행
+
+`tests/`에 표준 라이브러리 `unittest` 기반 테스트가 있습니다 (추가 설치 불필요). 데이터 검증 규칙, `courses.csv` 파싱, 시간표 탐색, HTML 렌더링, 그리고 이번에 실제로 고쳤던 버그들의 회귀 테스트를 포함합니다.
+
+```bash
+python -m unittest discover -s tests -t .
+```
+
 ---
 
 ## 사용 방법

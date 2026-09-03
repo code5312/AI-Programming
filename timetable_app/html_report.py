@@ -6,10 +6,29 @@
 import hashlib
 from typing import List, Optional
 
-from .models import Course
+from .models import CLASS_TIME_MAX, CLASS_TIME_MIN, DAY_NAMES, Course
 
-DAYS = ["월", "화", "수", "목", "금"]
-HOURS = list(range(9, 18))
+# 30분 단위 그리드. TimeSlot은 09:30처럼 정시가 아닌 시작 시각도 허용하므로,
+# 시간 단위 그리드(과거 구현)로는 그런 수업이 잘못된 줄에 놓이거나 소요시간이
+# 잘려나갔다. 30분 슬롯 인덱스로 위치/길이를 계산하면 정시·30분 단위 시각은
+# 항상 정확히 표현되고, 그 외의 분(예: 09:15)도 가장 가까운 슬롯으로 반올림돼
+# 위치가 크게 어긋나지 않는다.
+SLOT_MINUTES = 30
+_START_MINUTES = CLASS_TIME_MIN.hour * 60 + CLASS_TIME_MIN.minute
+_END_MINUTES = CLASS_TIME_MAX.hour * 60 + CLASS_TIME_MAX.minute
+SLOT_COUNT = (_END_MINUTES - _START_MINUTES) // SLOT_MINUTES
+SLOTS = list(range(SLOT_COUNT))
+
+
+def _slot_index(t) -> int:
+    """time 객체를 그리드의 30분 슬롯 인덱스로 변환 (가장 가까운 슬롯으로 반올림)"""
+    total_minutes = t.hour * 60 + t.minute
+    return round((total_minutes - _START_MINUTES) / SLOT_MINUTES)
+
+
+def _slot_label(index: int) -> str:
+    total_minutes = _START_MINUTES + index * SLOT_MINUTES
+    return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
 
 # 과목 색상은 과목 코드의 해시값으로 팔레트에서 결정합니다.
 # (과목명을 하드코딩한 매핑 테이블은 다른 CSV/JSON으로 교체하면 전부 기본색으로
@@ -34,21 +53,24 @@ def _course_color(course: Course) -> str:
 
 def generate_html(schedule: List[Course], score: Optional[float] = None) -> str:
     """HTML 생성 (점수 표시 포함)"""
-    timetable = {hour: {day: [] for day in range(5)} for hour in HOURS}
+    timetable = {index: {day: [] for day in range(5)} for index in SLOTS}
 
     for course in schedule:
         color = _course_color(course)
         for slot in course.time_slots:
-            start_hour = slot.start_time.hour
-            duration = (slot.end_time.hour - slot.start_time.hour) + \
-                      (slot.end_time.minute - slot.start_time.minute) / 60
+            start_index = _slot_index(slot.start_time)
+            end_index = _slot_index(slot.end_time)
+            slot_span = max(1, end_index - start_index)
 
-            for offset in range(int(duration)):
-                timetable[start_hour + offset][slot.day].append({
+            for offset in range(slot_span):
+                index = start_index + offset
+                if index not in timetable:
+                    continue
+                timetable[index][slot.day].append({
                     "subject": course.name,
                     "location": course.classroom,
                     "is_first": offset == 0,
-                    "rowspan": int(duration) if offset == 0 else 0,
+                    "rowspan": slot_span if offset == 0 else 0,
                     "professor": course.professor,
                     "credits": course.credits,
                     "color": color,
@@ -75,7 +97,7 @@ def generate_html(schedule: List[Course], score: Optional[float] = None) -> str:
         .timetable th, .timetable td {{
             border: 1px solid #333;
             text-align: center;
-            height: 80px;
+            height: 40px;
             position: relative;
         }}
         .timetable th {{
@@ -122,15 +144,15 @@ def generate_html(schedule: List[Course], score: Optional[float] = None) -> str:
                 <th>시간/요일</th>
 """
 
-    for day in DAYS:
+    for day in DAY_NAMES:
         html_content += f"                <th>{day}</th>\n"
 
     html_content += "            </tr>\n        </thead>\n        <tbody>\n"
 
-    for hour in HOURS:
-        html_content += f"            <tr>\n                <td>{hour:02d}:00</td>\n"
+    for index in SLOTS:
+        html_content += f"            <tr>\n                <td>{_slot_label(index)}</td>\n"
         for day in range(5):
-            cells = timetable[hour][day]
+            cells = timetable[index][day]
             if not cells:
                 html_content += "                <td></td>\n"
             else:

@@ -6,43 +6,67 @@ import webbrowser
 
 from . import PROJECT_ROOT
 from .html_report import generate_html
-from .models import UserPreferences
+from .models import (
+    DAY_MAX,
+    DAY_MIN,
+    DAY_NAMES,
+    DIFFICULTY_MAX,
+    DIFFICULTY_MIN,
+    RATING_MAX,
+    RATING_MIN,
+    TOTAL_CREDITS_MAX,
+    TOTAL_CREDITS_MIN,
+    UserPreferences,
+)
 from .recommender import ScheduleRecommender
 
 
 def get_user_preferences() -> UserPreferences:
-    """사용자로부터 선호도 입력 받기"""
+    """
+    사용자로부터 선호도 입력 받기.
+
+    입력 범위는 전부 models.py의 도메인 상수(TOTAL_CREDITS_*, DAY_*, DIFFICULTY_*,
+    RATING_*)를 그대로 참조하므로, 다른 커리큘럼에 맞춰 그 상수들을 바꾸면 여기
+    프롬프트 문구와 검증 범위도 자동으로 같이 바뀐다 (따로 손볼 필요 없음).
+    """
     print("\n=== 시간표 선호도 설정 ===")
 
     # 학점 범위
     while True:
         try:
-            min_credits = int(input("최소 학점 (1-21, 기본값: 1): ").strip() or "1")
-            max_credits = int(input("최대 학점 (1-21, 기본값: 21): ").strip() or "21")
-            if 1 <= min_credits <= max_credits <= 21:
+            min_credits = int(
+                input(f"최소 학점 ({TOTAL_CREDITS_MIN}-{TOTAL_CREDITS_MAX}, 기본값: {TOTAL_CREDITS_MIN}): ").strip()
+                or str(TOTAL_CREDITS_MIN)
+            )
+            max_credits = int(
+                input(f"최대 학점 ({TOTAL_CREDITS_MIN}-{TOTAL_CREDITS_MAX}, 기본값: {TOTAL_CREDITS_MAX}): ").strip()
+                or str(TOTAL_CREDITS_MAX)
+            )
+            if TOTAL_CREDITS_MIN <= min_credits <= max_credits <= TOTAL_CREDITS_MAX:
                 break
             print("올바른 학점 범위를 입력하세요.")
         except ValueError:
             print("숫자를 입력하세요.")
 
     # 선호 요일
-    print("\n선호하는 요일을 선택하세요 (0: 월, 1: 화, 2: 수, 3: 목, 4: 금)")
+    day_options = ", ".join(f"{i}: {name}" for i, name in enumerate(DAY_NAMES))
+    print(f"\n선호하는 요일을 선택하세요 ({day_options})")
     print("선호하는 요일이 없다면 '없음'을 입력하세요.")
     preferred_days = []
     while True:
         try:
-            day_input = input("선호하는 요일 번호를 입력하세요 (0-4, 없음: n): ").strip().lower()
+            day_input = input(f"선호하는 요일 번호를 입력하세요 ({DAY_MIN}-{DAY_MAX}, 없음: n): ").strip().lower()
             if day_input == 'n':
                 break
             day = int(day_input)
-            if 0 <= day <= 4:
+            if DAY_MIN <= day <= DAY_MAX:
                 if day not in preferred_days:
                     preferred_days.append(day)
-                    print(f"선택된 요일: {['월', '화', '수', '목', '금'][day]}")
+                    print(f"선택된 요일: {DAY_NAMES[day]}")
                 else:
                     print("이미 선택된 요일입니다.")
             else:
-                print("0부터 4 사이의 숫자를 입력하세요.")
+                print(f"{DAY_MIN}부터 {DAY_MAX} 사이의 숫자를 입력하세요.")
         except ValueError:
             print("올바른 숫자를 입력하세요.")
 
@@ -76,30 +100,38 @@ def get_user_preferences() -> UserPreferences:
         print("올바른 과목 코드를 입력하세요.")
 
     # 난이도 선호
+    default_difficulty = 0.5
     while True:
         try:
-            diff_input = input("선호하는 난이도 (0-1, 기본값: 0.5): ").strip() or "0.5"
+            diff_input = (
+                input(f"선호하는 난이도 ({DIFFICULTY_MIN}-{DIFFICULTY_MAX}, 기본값: {default_difficulty}): ").strip()
+                or str(default_difficulty)
+            )
             preferred_difficulty = float(diff_input)
-            if 0 <= preferred_difficulty <= 1:
+            if DIFFICULTY_MIN <= preferred_difficulty <= DIFFICULTY_MAX:
                 break
-            print("0부터 1 사이의 숫자를 입력하세요.")
+            print(f"{DIFFICULTY_MIN}부터 {DIFFICULTY_MAX} 사이의 숫자를 입력하세요.")
         except ValueError:
             print("올바른 숫자를 입력하세요.")
 
     # 평점 선호
+    default_rating = 3.0
     while True:
         try:
-            rating_input = input("선호하는 평점 (0-5, 기본값: 3.0): ").strip() or "3.0"
+            rating_input = (
+                input(f"선호하는 평점 ({RATING_MIN}-{RATING_MAX}, 기본값: {default_rating}): ").strip()
+                or str(default_rating)
+            )
             preferred_rating = float(rating_input)
-            if 0 <= preferred_rating <= 5:
+            if RATING_MIN <= preferred_rating <= RATING_MAX:
                 break
-            print("0부터 5 사이의 숫자를 입력하세요.")
+            print(f"{RATING_MIN}부터 {RATING_MAX} 사이의 숫자를 입력하세요.")
         except ValueError:
             print("올바른 숫자를 입력하세요.")
 
     print("\n=== 입력된 선호도 정보 ===")
     print(f"학점 범위: {min_credits}~{max_credits}")
-    print(f"선호 요일: {[['월', '화', '수', '목', '금'][d] for d in preferred_days] if preferred_days else '없음'}")
+    print(f"선호 요일: {[DAY_NAMES[d] for d in preferred_days] if preferred_days else '없음'}")
     print(f"선호 교수: {', '.join(preferred_professors) if preferred_professors else '없음'}")
     print(f"제외 과목: {', '.join(excluded_courses) if excluded_courses else '없음'}")
     print(f"선호 난이도: {preferred_difficulty}")
