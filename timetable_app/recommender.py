@@ -5,6 +5,7 @@
 """
 import logging
 import random
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
@@ -50,8 +51,19 @@ class ScheduleRecommender:
     - AI 기반 시간표 추천
     """
 
-    def __init__(self):
-        """ScheduleRecommender 초기화"""
+    def __init__(self, data_dir: Optional[Path] = None):
+        """
+        ScheduleRecommender 초기화.
+
+        data_dir: 저장된 시간표(schedules/)와 특성 중요도 그래프(feature_importance.png)를
+        쓸 디렉터리. 지정하지 않으면 기존과 동일하게 PROJECT_ROOT를 쓴다(CLI 단일 사용자
+        동작 그대로). 웹 등 여러 사용자가 동시에 쓰는 환경에서는 사용자/세션별 디렉터리를
+        넘겨서 산출물이 서로 덮어쓰지 않도록 격리할 수 있다.
+        """
+        self.data_dir = Path(data_dir) if data_dir is not None else PROJECT_ROOT
+        self.schedules_dir = self.data_dir / "schedules"
+        self.feature_importance_path = self.data_dir / "feature_importance.png"
+
         self.courses: List[Course] = []
         self.user_preferences: Optional[UserPreferences] = None
         self.model = None
@@ -98,7 +110,7 @@ class ScheduleRecommender:
     def save_schedule(self, name: str, schedule: List[Course]) -> None:
         """시간표 저장"""
         try:
-            persistence.save_schedule_json(name, schedule)
+            persistence.save_schedule_json(name, schedule, schedules_dir=self.schedules_dir)
             self.saved_schedules[name] = schedule
             logging.info(f"시간표가 저장되었습니다: {name}")
         except Exception as e:
@@ -108,7 +120,7 @@ class ScheduleRecommender:
     def load_schedule(self, name: str) -> List[Course]:
         """저장된 시간표 불러오기"""
         try:
-            return persistence.load_schedule_json(name)
+            return persistence.load_schedule_json(name, schedules_dir=self.schedules_dir)
         except Exception as e:
             logging.error(f"시간표 불러오기 실패: {str(e)}")
             raise
@@ -228,7 +240,8 @@ class ScheduleRecommender:
         sns.barplot(x=importances, y=self.feature_names)
         plt.title("특성 중요도")
         plt.tight_layout()
-        plt.savefig(str(PROJECT_ROOT / "feature_importance.png"))
+        self.feature_importance_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(str(self.feature_importance_path))
         plt.close()
 
     # ---------------------------------------------------------------- #

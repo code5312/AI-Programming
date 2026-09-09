@@ -138,6 +138,8 @@ python -m unittest discover -s tests -t .
 | `timetable_app.persistence` | `load_courses_from_csv`, `save_schedule_json` 등 | 과목 CSV 입력 + 저장된 시간표 JSON 입출력 |
 | `timetable_app.cli` | `main`, `get_user_preferences` | 대화형 입력 및 실행 진입점 |
 
+`ScheduleRecommender(data_dir=...)`처럼 `data_dir`을 지정하면 저장된 시간표(`schedules/`)와 특성 중요도 그래프(`feature_importance.png`)를 해당 디렉터리 아래에 쓴다. 지정하지 않으면 기존과 동일하게 프로젝트 루트를 쓰므로 CLI 사용에는 영향이 없다. 여러 사용자가 동시에 쓰는 환경(예: 웹 서비스)에서 사용자/세션별 디렉터리를 넘겨 산출물을 격리하는 용도.
+
 ---
 
 ## 문제 해결(Trouble Shooting)

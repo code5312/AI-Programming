@@ -6,12 +6,15 @@ ScheduleRecommender 테스트
 - 모델이 없을 때 존재하지 않는 부모 클래스를 호출하던 버그 (generate_recommendations)
 - training_data.csv를 행 순서로 매칭하던 버그 (train_model)
 """
+import tempfile
 import unittest
 from datetime import time
+from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
 
+from timetable_app import PROJECT_ROOT
 from timetable_app.models import Course, CourseError, TimeSlot, UserPreferences
 from timetable_app.recommender import ScheduleRecommender
 
@@ -167,6 +170,33 @@ class GenerateRecommendationsTests(unittest.TestCase):
             r.generate_recommendations()
             spy_exact.assert_called_once()
             spy_greedy.assert_not_called()
+
+
+class DataDirIsolationTests(unittest.TestCase):
+    """
+    ScheduleRecommender(data_dir=...) 격리 테스트.
+
+    나중에 웹 등 여러 사용자가 동시에 쓰는 환경에서 사용자/세션별 data_dir을
+    넘기게 되는데, 그때 한 사용자의 저장된 시간표가 다른 사용자에게 보이거나
+    덮어써지면 안 된다는 것을 보장하는 회귀 테스트.
+    """
+
+    def test_default_data_dir_is_project_root(self):
+        r = ScheduleRecommender()
+        self.assertEqual(r.data_dir, PROJECT_ROOT)
+
+    def test_two_recommenders_do_not_share_schedules(self):
+        with tempfile.TemporaryDirectory() as dir_a, tempfile.TemporaryDirectory() as dir_b:
+            r_a = ScheduleRecommender(data_dir=Path(dir_a))
+            r_b = ScheduleRecommender(data_dir=Path(dir_b))
+            schedule = [_course("A", day=0, start=(9, 0), end=(10, 0))]
+
+            r_a.save_schedule("my_schedule", schedule)
+
+            self.assertTrue((Path(dir_a) / "schedules" / "my_schedule.json").exists())
+            self.assertFalse((Path(dir_b) / "schedules" / "my_schedule.json").exists())
+            with self.assertRaises(FileNotFoundError):
+                r_b.load_schedule("my_schedule")
 
 
 if __name__ == "__main__":

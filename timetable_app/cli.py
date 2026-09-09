@@ -176,7 +176,7 @@ def main():
 
             html_content = generate_html(best_schedule, score)
 
-            output_path = PROJECT_ROOT / "recommended_timetable.html"
+            output_path = recommender.data_dir / "recommended_timetable.html"
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
 

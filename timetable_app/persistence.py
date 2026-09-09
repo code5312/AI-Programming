@@ -138,26 +138,32 @@ def load_courses_from_csv(csv_file: str) -> Tuple[List[Course], Optional[pd.Data
     return courses, training_data
 
 
-def _safe_schedule_path(name: str) -> Path:
+def _safe_schedule_path(name: str, schedules_dir: Optional[Path] = None) -> Path:
     """schedules 디렉터리 밖을 가리키는 이름(경로 조작)을 차단"""
-    schedules_dir = SCHEDULES_DIR.resolve()
-    target = (schedules_dir / f"{name}.json").resolve()
-    if target != schedules_dir and schedules_dir not in target.parents:
+    base_dir = (schedules_dir if schedules_dir is not None else SCHEDULES_DIR).resolve()
+    target = (base_dir / f"{name}.json").resolve()
+    if target != base_dir and base_dir not in target.parents:
         raise ValueError(f"올바르지 않은 시간표 이름입니다: {name}")
     return target
 
 
-def save_schedule_json(name: str, schedule: List[Course]) -> None:
-    """시간표를 schedules/{name}.json으로 저장"""
-    path = _safe_schedule_path(name)
+def save_schedule_json(name: str, schedule: List[Course], schedules_dir: Optional[Path] = None) -> None:
+    """
+    시간표를 {schedules_dir}/{name}.json으로 저장.
+
+    schedules_dir을 지정하지 않으면 기본 SCHEDULES_DIR(PROJECT_ROOT/schedules)을 쓴다.
+    호출부(예: 웹 레이어)가 사용자/세션별 디렉터리를 넘기면 여러 사용자의 저장 파일이
+    서로 덮어쓰지 않고 격리된다.
+    """
+    path = _safe_schedule_path(name, schedules_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w', encoding='utf-8') as f:
         json.dump([course.to_dict() for course in schedule], f, ensure_ascii=False, indent=2)
 
 
-def load_schedule_json(name: str) -> List[Course]:
-    """저장된 시간표 불러오기"""
-    path = _safe_schedule_path(name)
+def load_schedule_json(name: str, schedules_dir: Optional[Path] = None) -> List[Course]:
+    """저장된 시간표 불러오기 (schedules_dir 의미는 save_schedule_json과 동일)"""
+    path = _safe_schedule_path(name, schedules_dir)
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return [Course.from_dict(course_data) for course_data in data]
