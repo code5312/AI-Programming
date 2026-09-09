@@ -152,4 +152,4 @@ python -m unittest discover -s tests -t .
 
 ## 라이선스
 
-별도 명시 없음.
+MIT LICENSE.
