@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib import font_manager
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -18,6 +19,25 @@ from sklearn.preprocessing import StandardScaler
 from . import PROJECT_ROOT, persistence
 from .features import extract_all_features, extract_preference_features
 from .models import Course, CourseError, UserPreferences
+
+# matplotlib 기본 폰트(DejaVu Sans)는 한글 글리프가 없어 특성 중요도 그래프의
+# 한글 제목/라벨이 네모(tofu)로 깨진다. OS별로 흔히 깔려 있는 한글 폰트를
+# 설치 여부를 확인해 가장 먼저 발견되는 것으로 설정하고, 하나도 없으면(예: 폰트
+# 미설치 리눅스 CI) 조용히 기본 폰트로 남겨둔다 - 그래프가 안 예쁠 뿐 실행은
+# 막지 않아야 하므로 예외를 던지지 않는다.
+_KOREAN_FONT_CANDIDATES = ["Malgun Gothic", "AppleGothic", "NanumGothic", "Noto Sans CJK KR"]
+
+
+def _configure_korean_font() -> None:
+    available = {font.name for font in font_manager.fontManager.ttflist}
+    for name in _KOREAN_FONT_CANDIDATES:
+        if name in available:
+            plt.rcParams["font.family"] = name
+            break
+    plt.rcParams["axes.unicode_minus"] = False
+
+
+_configure_korean_font()
 
 
 class ScheduleRecommender:

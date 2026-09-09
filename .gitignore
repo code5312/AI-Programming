@@ -6,9 +6,13 @@ __pycache__/
 venv/
 env/
 *.egg-info/
+build/
+dist/
+.pytest_cache/
 
 # ===== OS / Editor =====
 .DS_Store
+Thumbs.db
 .vscode/
 .idea/
 

@@ -40,10 +40,10 @@ AI-Programming/
 ## 요구사항
 
 - Python 3.8 이상
-- 필요 라이브러리:
+- 필요 라이브러리 (`requirements.txt`):
 
 ```bash
-pip install numpy pandas scikit-learn matplotlib seaborn
+pip install -r requirements.txt
 ```
 
 ---
@@ -60,7 +60,7 @@ cd AI-Programming
 ### 2. 라이브러리 설치
 
 ```bash
-pip install numpy pandas scikit-learn matplotlib seaborn
+pip install -r requirements.txt
 ```
 
 ### 3. 실행
