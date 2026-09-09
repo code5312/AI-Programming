@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-timetable-recommender"
+version = "0.1.0"
+description = "AI 기반 시간표 추천 시스템 (RandomForest 점수 예측 + 백트래킹/그리디 탐색)"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [{ name = "mingyu Kim", email = "mingue653@gmail.com" }]
+dependencies = [
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "matplotlib",
+    "seaborn",
+]
+
+[project.urls]
+Homepage = "https://github.com/code5312/AI-Programming"
+
+[project.scripts]
+timetable = "timetable_app.cli:main"
+
+[tool.setuptools]
+packages = ["timetable_app"]
