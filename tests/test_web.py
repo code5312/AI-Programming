@@ -34,6 +34,22 @@ class WebAppTests(unittest.TestCase):
     def _client(self):
         return self.app.test_client()
 
+    def test_unknown_route_returns_themed_404(self):
+        resp = self._client().get("/this-page-does-not-exist")
+        self.assertEqual(resp.status_code, 404)
+        self.assertIn("페이지를 찾을 수 없습니다".encode(), resp.data)
+
+    def test_favicon_and_og_tags_present(self):
+        resp = self._client().get("/")
+        self.assertIn(b'rel="icon"', resp.data)
+        self.assertIn(b'property="og:title"', resp.data)
+
+    def test_favicon_present_on_recommend_page(self):
+        """generate_html() 기반 페이지에도 파비콘이 주입되는지 확인."""
+        client = self._client()
+        resp = client.post("/recommend", data={"min_credits": "6", "max_credits": "12"})
+        self.assertIn(b'rel="icon"', resp.data)
+
     def test_index_shows_form(self):
         resp = self._client().get("/")
         self.assertEqual(resp.status_code, 200)

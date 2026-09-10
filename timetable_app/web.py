@@ -8,6 +8,7 @@ cli.py와 동일한 핵심 로직(ScheduleRecommender/html_report)을 그대로 
 브라우저 세션마다 격리해서 동시 접속자끼리 서로의 시간표를 보거나 덮어쓰지
 않도록 한다.
 """
+import base64
 import os
 import uuid
 from pathlib import Path
@@ -33,6 +34,21 @@ from .recommender import ScheduleRecommender, build_recommender_from_csv
 # 세션별 산출물(schedules/, feature_importance.png)이 쌓이는 위치. 프로젝트
 # 소스와 섞이지 않도록 별도 폴더로 두고 .gitignore에서 제외한다.
 WEB_DATA_DIR = PROJECT_ROOT / "webdata"
+
+# 이모지 하나로 된 SVG를 base64 data URI로 인코딩해 별도 이미지 파일 없이
+# 브라우저 탭 아이콘으로 쓴다. 직접 인코딩하면 실수하기 쉬워 base64.b64encode로
+# 한 번에 정확하게 만든다.
+_FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🗓️</text></svg>'
+_FAVICON_LINK = (
+    '<link rel="icon" href="data:image/svg+xml;base64,'
+    + base64.b64encode(_FAVICON_SVG.encode("utf-8")).decode("ascii")
+    + '">'
+)
+_META_EXTRAS = f"""{_FAVICON_LINK}
+    <meta name="theme-color" content="#0b0d11">
+    <meta property="og:title" content="AI 시간표 추천">
+    <meta property="og:description" content="AI가 시간 충돌 없는 최적의 시간표를 자동으로 추천해줍니다.">
+    <meta property="og:type" content="website">"""
 
 _PAGE_STYLE = """
 :root {
@@ -167,6 +183,7 @@ def _page(title: str, body: str) -> str:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{title}</title>
+    {_META_EXTRAS}
     <style>{_PAGE_STYLE}</style>
 </head>
 <body>
@@ -304,6 +321,11 @@ _BAR_STYLE = """
 """
 
 
+def _inject_into_head(html_content: str, extra: str) -> str:
+    """generate_html()이 만든 페이지의 </head> 바로 앞에 조각을 끼워 넣는다."""
+    return html_content.replace("</head>", extra + "</head>")
+
+
 def _with_save_bar(html_content: str) -> str:
     bar = """
         <div class="tt-bar">
@@ -314,12 +336,14 @@ def _with_save_bar(html_content: str) -> str:
             <p class="tt-links"><a href="/">✨ 다시 추천받기</a> · <a href="/schedules">저장된 시간표 보기</a></p>
         </div>
     """
-    return html_content.replace("</head>", f"<style>{_BAR_STYLE}</style></head>").replace("</body>", bar + "</body>")
+    html_content = _inject_into_head(html_content, f"{_META_EXTRAS}<style>{_BAR_STYLE}</style>")
+    return html_content.replace("</body>", bar + "</body>")
 
 
 def _with_back_link(html_content: str) -> str:
     link = '<div class="tt-bar"><p class="tt-links"><a href="/schedules">← 목록으로</a></p></div>'
-    return html_content.replace("</head>", f"<style>{_BAR_STYLE}</style></head>").replace("</body>", link + "</body>")
+    html_content = _inject_into_head(html_content, f"{_META_EXTRAS}<style>{_BAR_STYLE}</style>")
+    return html_content.replace("</body>", link + "</body>")
 
 
 def _parse_preferences(form) -> UserPreferences:
@@ -530,6 +554,17 @@ def create_app() -> Flask:
     @app.errorhandler(413)
     def too_large(_e):
         return _upload_page("파일이 너무 큽니다 (최대 2MB)."), 413
+
+    @app.errorhandler(404)
+    def not_found(_e):
+        return _error_page("페이지를 찾을 수 없습니다."), 404
+
+    @app.errorhandler(500)
+    def server_error(_e):
+        # 사용자에게 스택 트레이스를 노출하지 않고 일반적인 메시지만 보여준다.
+        # 실제 원인은 timetable.log에 남는다 (recommender/persistence의 기존
+        # logging.error 호출들을 통해).
+        return _error_page("서버에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요."), 500
 
     return app
 
