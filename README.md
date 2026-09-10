@@ -14,6 +14,7 @@
 - [폴더 구조](#폴더-구조)
 - [요구사항](#요구사항)
 - [설치 및 실행 방법](#설치-및-실행-방법)
+- [배포 (Render)](#배포-render)
 - [사용 방법](#사용-방법)
 - [데이터 파일 형식](#데이터-파일-형식)
 - [주기적 데이터 갱신 (가천대 강의시간표 자동 가져오기)](#주기적-데이터-갱신-가천대-강의시간표-자동-가져오기)
@@ -58,6 +59,8 @@ AI-Programming/
 │       └── gachon.py                 # 가천대 강의시간표 조회 API 임포터
 ├── tests/                         # unittest 기반 테스트 스위트
 ├── .github/workflows/tests.yml    # push/PR마다 테스트 자동 실행 (CI)
+├── render.yaml                    # Render 배포 설정 (원클릭 배포용)
+├── Procfile                       # 프로덕션 시작 명령 (gunicorn app:app)
 ├── courses.csv                    # 과목 정보 + 학습용 점수 (이 파일만 갈아 끼우면 됨)
 ├── schedules/                     # CLI로 저장한 시간표 (자동 생성됨)
 ├── webdata/                       # 웹 세션별 저장 시간표 (자동 생성됨, git 추적 제외)
@@ -117,6 +120,27 @@ python app.py
 ```bash
 python -m unittest discover -s tests -t .
 ```
+
+---
+
+## 배포 (Render)
+
+로컬에서 `python app.py`로만 쓰던 웹 UI를 링크 하나로 누구나 접속할 수 있게 [Render](https://render.com)에 배포할 수 있습니다. 이 레포에는 이미 `render.yaml`(배포 설정)과 `Procfile`(프로덕션 시작 명령)이 준비되어 있습니다.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/code5312/AI-Programming)
+
+### 수동으로 배포하는 경우
+
+1. Render 대시보드 → **New** → **Blueprint** → 이 GitHub 레포 선택 (`render.yaml`을 자동으로 인식함)
+2. 배포 완료 후 발급되는 `https://<서비스이름>.onrender.com` 링크로 누구나 접속 가능
+
+### 알아둘 점
+
+- **프로덕션 WSGI 서버**: `python app.py`(로컬 개발용 Flask 내장 서버) 대신 실제 배포에서는 `gunicorn app:app`을 씁니다. `app.py`가 모듈 레벨에 `app` 객체를 노출해 gunicorn이 바로 가져다 쓸 수 있게 되어 있습니다.
+- **세션 서명 키(`FLASK_SECRET_KEY`)**: `render.yaml`의 `generateValue: true`가 배포 시 한 번 자동 생성해 고정값으로 유지합니다. 이 값이 재배포마다 바뀌면 기존 방문자의 세션(및 그 세션에 연결된 저장 시간표 접근)이 끊깁니다.
+- **저장 데이터는 재배포 시 초기화될 수 있음**: `webdata/`(웹 세션별 저장 시간표)는 Render 무료 플랜의 임시(ephemeral) 파일시스템에 쓰여서, 재배포하거나 서비스가 슬립 후 깨어날 때 사라질 수 있습니다. 한 세션 안에서 추천받고 저장/조회하는 흐름은 정상 동작하지만, 장기 보관용 저장소는 아닙니다.
+- **`courses.csv` 갱신 반영**: `gachon-import`로 새 학기 데이터를 받아 `courses.csv`를 갱신했다면, 커밋 후 GitHub에 push하면 Render가 자동으로 재배포합니다(레포 연동 시 기본 동작).
+- **무료 플랜은 일정 시간 요청이 없으면 슬립**합니다. 슬립 상태에서 첫 요청은 서버가 깨어나느라 몇십 초 걸릴 수 있습니다 (포트폴리오 데모 목적이면 보통 괜찮은 수준).
 
 ---
 

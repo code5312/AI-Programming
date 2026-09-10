@@ -391,8 +391,12 @@ def create_app() -> Flask:
 def main():
     """개발 서버 실행 진입점 (python app.py 또는 `timetable-web` 콘솔 스크립트)"""
     app = create_app()
-    debug = os.environ.get("FLASK_DEBUG") == "1"
-    app.run(host="127.0.0.1", port=5000, debug=debug, threaded=True)
+    app.run(
+        host=os.environ.get("HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", 5000)),
+        debug=os.environ.get("FLASK_DEBUG") == "1",
+        threaded=True,
+    )
 
 
 if __name__ == "__main__":
