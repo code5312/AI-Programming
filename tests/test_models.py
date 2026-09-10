@@ -33,8 +33,10 @@ class TimeSlotTests(unittest.TestCase):
             TimeSlot(day=0, start_time=time(8, 0), end_time=time(9, 0))
 
     def test_after_business_hours(self):
+        # CLASS_TIME_MAX(23:00)를 넘어가는 경우 (50분 교시제 학교의 야간수업
+        # 14교시가 22:00~22:50까지 있어 야간수업 자체는 허용 범위 안에 있음)
         with self.assertRaises(TimeSlotError):
-            TimeSlot(day=0, start_time=time(17, 0), end_time=time(19, 0))
+            TimeSlot(day=0, start_time=time(22, 30), end_time=time(23, 50))
 
     def test_duration_too_short(self):
         with self.assertRaises(TimeSlotError):

@@ -23,8 +23,11 @@ class CourseError(Exception):
 # ---- 시간표 도메인 규칙 ----
 DAY_MIN, DAY_MAX = 0, 4  # 0: 월요일 ~ 4: 금요일
 DAY_NAMES = ["월", "화", "수", "목", "금"]
-CLASS_TIME_MIN, CLASS_TIME_MAX = time(9, 0), time(18, 0)
-CLASS_DURATION_MIN_HOURS, CLASS_DURATION_MAX_HOURS = 1, 4
+CLASS_TIME_MIN, CLASS_TIME_MAX = time(9, 0), time(23, 0)
+# 50분 단위 교시제 학교(예: 가천대)는 한 교시(50분)짜리 단독 수업 블록이
+# 실제로 존재한다(3학점 과목을 2교시+1교시로 나눠 배정하는 등) - 1시간
+# 미만이라고 무시하면 실제 학사 데이터의 상당수가 거부된다.
+CLASS_DURATION_MIN_HOURS, CLASS_DURATION_MAX_HOURS = 0.8, 4
 COURSE_CREDITS_MIN, COURSE_CREDITS_MAX = 1, 3
 TOTAL_CREDITS_MIN, TOTAL_CREDITS_MAX = 1, 21
 DIFFICULTY_MIN, DIFFICULTY_MAX = 0.0, 1.0

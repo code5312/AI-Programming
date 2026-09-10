@@ -68,9 +68,26 @@ class ScheduleRecommender:
         self.user_preferences: Optional[UserPreferences] = None
         self.model = None
         self.scaler = StandardScaler()
-        self.saved_schedules: Dict[str, List[Course]] = {}
-        self.training_data = None
         self.feature_names: Optional[List[str]] = None
+
+    def clone_with_data_dir(self, data_dir: Path) -> "ScheduleRecommender":
+        """
+        학습된 모델/과목 카탈로그는 그대로 공유하고 data_dir(저장 시간표 경로)만
+        새로 지정한 가벼운 복제본을 만든다.
+
+        웹처럼 여러 사용자가 동시에 요청을 보내는 환경에서, 비용이 큰 CSV 파싱 +
+        모델 학습을 요청마다 반복하지 않으면서도 요청/세션마다 독립된
+        user_preferences와 schedules_dir을 갖게 해 동시 요청 간 상태가 섞이지
+        않도록 하기 위함. 원본과 복제본이 courses/model/scaler를 같은 객체로
+        공유하지만, 두 값 모두 추천 생성 과정에서 읽기만 하고 쓰지 않으므로
+        동시에 여러 복제본에서 접근해도 안전하다.
+        """
+        clone = ScheduleRecommender(data_dir=data_dir)
+        clone.courses = self.courses
+        clone.model = self.model
+        clone.scaler = self.scaler
+        clone.feature_names = self.feature_names
+        return clone
 
     # ---------------------------------------------------------------- #
     # 과목 카탈로그 관리
@@ -111,7 +128,6 @@ class ScheduleRecommender:
         """시간표 저장"""
         try:
             persistence.save_schedule_json(name, schedule, schedules_dir=self.schedules_dir)
-            self.saved_schedules[name] = schedule
             logging.info(f"시간표가 저장되었습니다: {name}")
         except Exception as e:
             logging.error(f"시간표 저장 실패: {str(e)}")
@@ -186,7 +202,6 @@ class ScheduleRecommender:
         과목 순서/개수가 어긋나면 엉뚱한 과목에 엉뚱한 점수가 붙는 것을
         방지하기 위함).
         """
-        self.training_data = training_data
         course_by_code = {course.code: course for course in self.courses}
 
         matched_courses: List[Course] = []
@@ -435,3 +450,23 @@ class ScheduleRecommender:
             results.append((schedule, score_fn(schedule)))
 
         return results
+
+
+def build_recommender_from_csv(
+    csv_path: str,
+    data_dir: Optional[Path] = None,
+) -> Tuple[ScheduleRecommender, bool]:
+    """
+    courses.csv 하나로 ScheduleRecommender를 만들고, score 데이터가 있으면
+    모델까지 학습해 둔다. CLI(cli.main)와 웹(web._load_base_recommender) 양쪽
+    진입점이 실행 시작 시 똑같이 거치는 절차라 여기 하나로 모아 중복을 없앴다.
+
+    반환값의 두 번째 값은 모델을 실제로 학습했는지 여부 - 호출부가 사용자에게
+    "AI 모델 학습됨/규칙 기반" 여부를 알려줄 때 쓰면 된다.
+    """
+    recommender = ScheduleRecommender(data_dir=data_dir)
+    training_data = recommender.load_courses_from_csv(csv_path)
+    trained = training_data is not None and not training_data.empty
+    if trained:
+        recommender.train_model(training_data)
+    return recommender, trained

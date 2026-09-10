@@ -18,7 +18,7 @@ from .models import (
     TOTAL_CREDITS_MIN,
     UserPreferences,
 )
-from .recommender import ScheduleRecommender
+from .recommender import build_recommender_from_csv
 
 
 def get_user_preferences() -> UserPreferences:
@@ -151,17 +151,15 @@ def get_user_preferences() -> UserPreferences:
 def main():
     """메인 함수"""
     try:
-        recommender = ScheduleRecommender()
-
         # 과목 데이터 + 학습 데이터를 courses.csv 한 파일에서 로드.
         # 실행 시점의 현재 작업 디렉터리가 아니라 timetable.py가 있는 프로젝트
         # 루트를 기준으로 찾으므로, 어디서 실행하든(IDE 실행 버튼, 다른 폴더에서
         # 커맨드 실행 등) 같은 courses.csv를 찾는다. 이 파일을 다른 학기/커리큘럼
-        # 데이터로 통째로 교체하면 그대로 반영됨.
-        training_data = recommender.load_courses_from_csv(str(PROJECT_ROOT / "courses.csv"))
+        # 데이터로 통째로 교체하면 그대로 반영됨 (가천대 강의시간표를 자동으로
+        # 긁어와 교체하고 싶다면 timetable_app/importers/gachon.py 참고).
+        recommender, trained = build_recommender_from_csv(str(PROJECT_ROOT / "courses.csv"))
 
-        if training_data is not None and not training_data.empty:
-            recommender.train_model(training_data)
+        if trained:
             print("✅ AI 모델이 훈련되었습니다.")
         else:
             print("ℹ️ courses.csv에 score 값이 없어 AI 모델 없이 규칙 기반으로 진행합니다.")

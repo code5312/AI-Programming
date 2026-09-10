@@ -1,0 +1,22 @@
+# timetable_app
+
+AI 시간표 추천 시스템의 실제 구현 패키지. 전체 사용법/설치 방법은 [루트 README](../README.md) 참고.
+
+## 모듈 구성
+
+| 모듈 | 역할 |
+|---|---|
+| `models.py` | `TimeSlot`, `Course`, `UserPreferences` 데이터클래스와 도메인 상수(수업 가능 시간대, 학점 범위 등) |
+| `features.py` | 과목 → AI 모델 입력 특성(feature) 변환 |
+| `recommender.py` | `ScheduleRecommender` — 과목 카탈로그 관리, 모델 학습/예측, 시간표 탐색(백트래킹/그리디) |
+| `html_report.py` | 추천 시간표를 다크 테마 HTML로 렌더링 |
+| `persistence.py` | `courses.csv` 입력 파싱 + 저장된 시간표(JSON) 입출력 |
+| `cli.py` | 터미널 대화형 입력 및 CLI 실행 진입점(`main`) |
+| `web.py` | Flask 기반 웹 UI 및 실행 진입점(`main`) |
+| `importers/` | 외부 학사 시스템 데이터를 `courses.csv` 형식으로 변환하는 스크립트 모음 — [importers/README.md](importers/README.md) 참고 |
+
+## 의존 방향
+
+`models` ← `features`/`persistence` ← `recommender` ← `cli`/`web`. 상위(`cli`/`web`)는 하위 모듈을 조합만 하고, 핵심 로직(검증 규칙, 특성 추출, 탐색 알고리즘)은 전부 하위 모듈에 있다 — CLI/웹 어느 쪽에서 실행하든 동일한 로직을 거친다.
+
+`importers/`는 이 의존 그래프 밖에 있는 별도 유틸리티다. `courses.csv`와 같은 형식의 파일을 만들어낼 뿐, 런타임에 `recommender`/`cli`/`web`이 직접 호출하지 않는다 — 학기당 한 번 수동으로 실행해 데이터를 미리 준비해두는 용도.

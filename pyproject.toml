@@ -16,6 +16,7 @@ dependencies = [
     "scikit-learn",
     "matplotlib",
     "seaborn",
+    "flask",
 ]
 
 [project.urls]
@@ -23,6 +24,8 @@ Homepage = "https://github.com/code5312/AI-Programming"
 
 [project.scripts]
 timetable = "timetable_app.cli:main"
+timetable-web = "timetable_app.web:main"
+gachon-import = "timetable_app.importers.gachon:main"
 
-[tool.setuptools]
-packages = ["timetable_app"]
+[tool.setuptools.packages.find]
+include = ["timetable_app*"]
