@@ -10,9 +10,10 @@ cli.py와 동일한 핵심 로직(ScheduleRecommender/html_report)을 그대로 
 """
 import os
 import uuid
-from typing import List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional
 
-from flask import Flask, request, session
+from flask import Flask, redirect, request, session
 
 from . import PROJECT_ROOT
 from .html_report import generate_html
@@ -95,6 +96,21 @@ input[type=text]:focus, input[type=number]:focus {
     outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(67, 170, 139, .22);
 }
 input::placeholder { color: #6b7078; }
+input[type=file] { width: 100%; padding: 10px 0; color: var(--text-dim); font-size: 14px; }
+input[type=file]::file-selector-button {
+    background: var(--bg-input); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 14px; margin-right: 12px; cursor: pointer; font-size: 13.5px;
+}
+input[type=file]::file-selector-button:hover { border-color: var(--accent-2); }
+.banner {
+    background: rgba(87, 117, 144, .12); border: 1px solid rgba(87, 117, 144, .35);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 22px; font-size: 13.5px;
+    color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.banner form { margin: 0; }
+.banner button.linklike {
+    all: unset; color: var(--accent); cursor: pointer; text-decoration: underline; font-size: 13.5px;
+}
 .day-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .day-chip { position: relative; }
 .day-chip input { position: absolute; opacity: 0; width: 0; height: 0; }
@@ -163,8 +179,18 @@ def _page(title: str, body: str) -> str:
 </html>"""
 
 
-def _preference_form(error: Optional[str] = None) -> str:
+def _preference_form(error: Optional[str] = None, custom_active: bool = False) -> str:
     error_html = f'<div class="error">⚠️ <div>{error}</div></div>' if error else ""
+    banner_html = ""
+    if custom_active:
+        banner_html = """
+        <div class="banner">
+            <span>📤 업로드한 나만의 데이터로 추천 중입니다.</span>
+            <form method="post" action="/reset-data">
+                <button type="submit" class="linklike">기본 데이터로 돌아가기</button>
+            </form>
+        </div>
+        """
     day_chips = "\n".join(
         f'<label class="day-chip"><input type="checkbox" name="preferred_days" value="{i}"><span>{name}</span></label>'
         for i, name in enumerate(DAY_NAMES)
@@ -173,6 +199,7 @@ def _preference_form(error: Optional[str] = None) -> str:
         <div class="eyebrow">AI Timetable</div>
         <h1>🗓️ 시간표 추천받기</h1>
         <p class="subtitle">선호도를 입력하면 AI가 시간 충돌 없는 최적의 시간표를 찾아드립니다.</p>
+        {banner_html}
         {error_html}
         <form method="post" action="/recommend">
             <div class="section">
@@ -214,9 +241,33 @@ def _preference_form(error: Optional[str] = None) -> str:
             </div>
             <button type="submit">✨ 시간표 추천받기</button>
         </form>
-        <div class="footer-links"><a href="/schedules">💾 저장된 시간표 보기</a></div>
+        <div class="footer-links"><a href="/upload">📤 내 CSV로 추천하기</a> · <a href="/schedules">💾 저장된 시간표 보기</a></div>
     """
     return _page("AI 시간표 추천", body)
+
+
+def _upload_page(error: Optional[str] = None) -> str:
+    error_html = f'<div class="error">⚠️ <div>{error}</div></div>' if error else ""
+    body = f"""
+        <div class="eyebrow">AI Timetable</div>
+        <h1>📤 내 강의시간표 CSV 업로드</h1>
+        <p class="subtitle">다른 학교/학기 커리큘럼이어도 <code>courses.csv</code>와 같은 형식이면 그대로 쓸 수 있습니다.</p>
+        {error_html}
+        <div class="section">
+            <div class="section-title">필수 컬럼</div>
+            <p class="hint" style="margin:0;">code, name, professor, credits, classroom, capacity, day, start_time, end_time</p>
+            <p class="hint">선택: current_enrolled, difficulty, rating, prerequisites, score (score가 2개 이상 채워져 있으면 AI 모델을 학습합니다)</p>
+        </div>
+        <form method="post" action="/upload" enctype="multipart/form-data">
+            <div class="section">
+                <label>CSV 파일</label>
+                <input type="file" name="csv_file" accept=".csv" required>
+            </div>
+            <button type="submit">업로드</button>
+        </form>
+        <div class="footer-links"><a href="/">← 돌아가기</a></div>
+    """
+    return _page("CSV 업로드", body)
 
 
 def _error_page(message: str) -> str:
@@ -298,19 +349,55 @@ def create_app() -> Flask:
     # 키가 생기면 세션이 깨지므로, 배포 환경에서는 반드시 FLASK_SECRET_KEY
     # 환경변수로 고정값을 넣어야 한다 (README 참고).
     app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(32)
+    # 업로드 CSV 크기 제한 (남용 방지). 과목 몇백 개짜리 CSV도 수백 KB 수준이라
+    # 2MB면 충분히 넉넉하다.
+    app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
     base_recommender = _load_base_recommender()
+    # 세션이 업로드한 커스텀 카탈로그(학습된 모델 포함)를 세션ID로 캐싱.
+    # 매 요청마다 CSV를 다시 파싱/학습하면 느리므로, 한 번 만든 뒤 재사용한다.
+    #
+    # 프로세스 메모리 캐시라 gunicorn을 워커 여러 개로 띄우면 요청이 다른
+    # 워커로 갈 때 이 캐시가 비어 있을 수 있다 - 그래서 캐시 미스일 때는
+    # 디스크(data_dir/uploaded_courses.csv, upload()가 저장해둔 파일)를 다시
+    # 확인해 재구성한다. 디스크는 워커들이 공유하므로 이 경로면 몇 초 안 걸리는
+    # 재학습 한 번으로 정합성이 보장된다 (완전히 사라지는 건 재배포/재시작 때뿐 -
+    # 저장 시간표(webdata/)도 같은 제약이라 새로울 것 없다).
+    uploaded_recommenders: Dict[str, ScheduleRecommender] = {}
+    app.uploaded_recommenders = uploaded_recommenders  # 테스트에서 캐시 상태를 직접 들여다보기 위한 참조
 
-    def _session_recommender() -> ScheduleRecommender:
+    def _uploaded_csv_path(session_id: str) -> Path:
+        return WEB_DATA_DIR / session_id / "uploaded_courses.csv"
+
+    def _ensure_session_id() -> str:
         session_id = session.get("session_id")
         if not session_id:
             session_id = uuid.uuid4().hex
             session["session_id"] = session_id
-        return base_recommender.clone_with_data_dir(WEB_DATA_DIR / session_id)
+        return session_id
+
+    def _has_custom_catalog(session_id: Optional[str]) -> bool:
+        if not session_id:
+            return False
+        return session_id in uploaded_recommenders or _uploaded_csv_path(session_id).exists()
+
+    def _session_recommender() -> ScheduleRecommender:
+        session_id = _ensure_session_id()
+        data_dir = WEB_DATA_DIR / session_id
+        custom = uploaded_recommenders.get(session_id)
+        if custom is None:
+            csv_path = _uploaded_csv_path(session_id)
+            if csv_path.exists():
+                custom, _trained = build_recommender_from_csv(str(csv_path), data_dir=data_dir)
+                uploaded_recommenders[session_id] = custom
+        if custom is not None:
+            return custom.clone_with_data_dir(data_dir)
+        return base_recommender.clone_with_data_dir(data_dir)
 
     @app.get("/")
     def index():
-        return _preference_form()
+        session_id = session.get("session_id")
+        return _preference_form(custom_active=_has_custom_catalog(session_id))
 
     @app.post("/recommend")
     def recommend():
@@ -384,6 +471,65 @@ def create_app() -> Flask:
             return _error_page(f"시간표를 불러올 수 없습니다: {e}"), 404
         html_content = generate_html(schedule)
         return _with_back_link(html_content)
+
+    @app.get("/upload")
+    def upload_form():
+        return _upload_page()
+
+    @app.post("/upload")
+    def upload():
+        file = request.files.get("csv_file")
+        if file is None or file.filename == "":
+            return _upload_page("CSV 파일을 선택해주세요."), 400
+        if not file.filename.lower().endswith(".csv"):
+            return _upload_page("CSV 파일(.csv)만 업로드할 수 있습니다."), 400
+
+        session_id = _ensure_session_id()
+        data_dir = WEB_DATA_DIR / session_id
+        data_dir.mkdir(parents=True, exist_ok=True)
+        # 원본 파일명은 쓰지 않고 고정된 이름으로 저장 - 경로 조작 위험을
+        # 애초에 차단하고, 이후 로직도 항상 이 경로 하나만 알면 된다.
+        csv_path = _uploaded_csv_path(session_id)
+        file.save(csv_path)
+
+        try:
+            recommender, trained = build_recommender_from_csv(str(csv_path), data_dir=data_dir)
+        except Exception as e:
+            # 업로드 파일은 신뢰할 수 없는 외부 입력이라(깨진 인코딩, CSV가 아닌
+            # 파일 등 pandas가 어떤 예외를 던질지 예측 불가), 파싱 단계의 모든
+            # 예외를 사용자에게 보여줄 오류로 취급한다.
+            csv_path.unlink(missing_ok=True)
+            return _upload_page(f"CSV를 읽을 수 없습니다: {e}"), 400
+
+        if not recommender.courses:
+            csv_path.unlink(missing_ok=True)
+            return _upload_page(
+                "올바른 과목 데이터를 찾지 못했습니다. 필수 컬럼과 형식(요일 0~4, "
+                "시간 09:00~23:00 등)을 확인해주세요. 자세한 사유는 timetable.log에 남습니다."
+            ), 400
+
+        uploaded_recommenders[session_id] = recommender
+
+        model_note = "AI 모델이 학습되었습니다." if trained else "score 값이 없어 규칙 기반으로 추천합니다."
+        body = f"""
+            <div class="center-icon">✅</div>
+            <h1 style="text-align:center;">업로드 완료</h1>
+            <p class="subtitle" style="text-align:center;">{len(recommender.courses)}개 과목을 불러왔습니다. {model_note}</p>
+            <a href="/" class="btn">✨ 이 데이터로 추천받기</a>
+        """
+        return _page("업로드 완료", body)
+
+    @app.post("/reset-data")
+    def reset_data():
+        session_id = session.get("session_id")
+        if session_id:
+            uploaded_recommenders.pop(session_id, None)
+            _uploaded_csv_path(session_id).unlink(missing_ok=True)
+        return redirect("/")
+
+    @app.errorhandler(413)
+    def too_large(_e):
+        return _upload_page("파일이 너무 큽니다 (최대 2MB)."), 413
 
     return app
 
