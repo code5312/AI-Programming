@@ -11,6 +11,7 @@ cli.py와 동일한 핵심 로직(ScheduleRecommender/html_report)을 그대로 
 import base64
 import os
 import uuid
+from html import escape
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -197,7 +198,9 @@ def _page(title: str, body: str) -> str:
 
 
 def _preference_form(error: Optional[str] = None, custom_active: bool = False) -> str:
-    error_html = f'<div class="error">⚠️ <div>{error}</div></div>' if error else ""
+    # 지금은 error 인자로 호출하는 곳이 없지만, 나중에 쓰이게 되면 여기 값도
+    # 신뢰할 수 없는 외부 입력일 수 있으므로 미리 이스케이프해둔다.
+    error_html = f'<div class="error">⚠️ <div>{escape(error)}</div></div>' if error else ""
     banner_html = ""
     if custom_active:
         banner_html = """
@@ -264,7 +267,10 @@ def _preference_form(error: Optional[str] = None, custom_active: bool = False) -
 
 
 def _upload_page(error: Optional[str] = None) -> str:
-    error_html = f'<div class="error">⚠️ <div>{error}</div></div>' if error else ""
+    # error에는 예외 메시지(pandas 파싱 오류 등)가 그대로 들어올 수 있고, 그
+    # 메시지 안에 사용자가 CSV에 적어 넣은 원본 텍스트가 echo될 수 있다
+    # (신뢰할 수 없는 외부 입력) - 스크립트 삽입(XSS)을 막기 위해 이스케이프.
+    error_html = f'<div class="error">⚠️ <div>{escape(error)}</div></div>' if error else ""
     body = f"""
         <div class="eyebrow">AI Timetable</div>
         <h1>📤 내 강의시간표 CSV 업로드</h1>
@@ -288,10 +294,14 @@ def _upload_page(error: Optional[str] = None) -> str:
 
 
 def _error_page(message: str) -> str:
+    # message에는 예외 메시지(예: int() 변환 실패, 경로 검증 실패 등)가 그대로
+    # 들어올 수 있는데, 그 메시지 안에 사용자가 폼/URL에 입력한 원본 텍스트가
+    # echo되는 경우가 있다 (신뢰할 수 없는 외부 입력) - 이스케이프하지 않으면
+    # 스크립트 삽입(XSS)으로 이어진다.
     body = f"""
         <div class="center-icon">⚠️</div>
         <h1 style="text-align:center;">오류가 발생했습니다</h1>
-        <div class="error" style="justify-content:center;">{message}</div>
+        <div class="error" style="justify-content:center;">{escape(message)}</div>
         <a href="/" class="btn">← 돌아가기</a>
     """
     return _page("오류", body)
@@ -455,13 +465,19 @@ def create_app() -> Flask:
         schedule: List[Course] = [c for c in recommender.courses if c.code in codes]
         try:
             recommender.save_schedule(name, schedule)
-        except ValueError as e:
-            return _error_page(str(e)), 400
+        except (ValueError, OSError) as e:
+            # ValueError: _safe_schedule_path의 경로 조작 차단.
+            # OSError: 파일시스템이 이름 자체를 거부하는 경우 (예: Windows는
+            # <, >, :, " 등을 파일명에 못 씀) - 플랫폼마다 걸리는 문자가
+            # 달라서 예외를 좁게 잡으면 특정 환경에서만 500으로 죽는다.
+            return _error_page(f"이 이름으로 저장할 수 없습니다: {e}"), 400
 
+        # name은 사용자가 직접 입력한 값이라(신뢰할 수 없는 외부 입력)
+        # 그대로 HTML에 꽂아 넣으면 스크립트 삽입(XSS)으로 이어진다.
         body = f"""
             <div class="center-icon">✅</div>
             <h1 style="text-align:center;">저장 완료</h1>
-            <p class="subtitle" style="text-align:center;">"{name}" 이름으로 저장되었습니다.</p>
+            <p class="subtitle" style="text-align:center;">"{escape(name)}" 이름으로 저장되었습니다.</p>
             <a href="/schedules" class="btn">💾 저장된 시간표 보기</a>
         """
         return _page("저장 완료", body)
@@ -474,8 +490,10 @@ def create_app() -> Flask:
         if not names:
             items = '<div class="empty-state">아직 저장된 시간표가 없습니다.</div>'
         else:
+            # 저장 시간표 이름은 사용자가 직접 지었던 값이라(신뢰할 수 없는
+            # 외부 입력) 그대로 꽂아 넣으면 스크립트 삽입(XSS)으로 이어진다.
             items = "<ul class='schedule-list'>" + "".join(
-                f'<li><a href="/schedules/{n}">{n}</a></li>' for n in names
+                f'<li><a href="/schedules/{escape(n)}">{escape(n)}</a></li>' for n in names
             ) + "</ul>"
         body = f"""
             <div class="eyebrow">AI Timetable</div>

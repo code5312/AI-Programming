@@ -20,6 +20,12 @@ _CUSTOM_CSV = (
 
 _INVALID_CSV = b"code,name\nX001,Foo\n"  # 필수 컬럼(professor 등) 누락
 
+_XSS_PAYLOAD = "<script>alert(1)</script>"
+_XSS_CSV = (
+    "code,name,professor,credits,classroom,capacity,day,start_time,end_time\n"
+    f"X001,{_XSS_PAYLOAD},ProfKim,3,R101,30,0,09:00,10:50\n"
+).encode("utf-8")
+
 
 class WebAppTests(unittest.TestCase):
     @classmethod
@@ -97,6 +103,61 @@ class WebAppTests(unittest.TestCase):
 
         resp = client_a.get("/schedules/shared_name")
         self.assertEqual(resp.status_code, 200)
+
+
+class XssTests(unittest.TestCase):
+    """
+    폼/업로드/저장 이름처럼 사용자가 직접 넣는 값이 그대로 HTML에 echo되면
+    스크립트 삽입(XSS)으로 이어진다. 이스케이프 처리가 실제로 되고 있는지
+    회귀 테스트로 고정해둔다.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app = create_app()
+        cls.app.testing = True
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(WEB_DATA_DIR, ignore_errors=True)
+
+    def _client(self):
+        return self.app.test_client()
+
+    def test_invalid_input_error_message_is_escaped(self):
+        """int() 변환 실패 메시지에 그대로 담기는 사용자 입력값이 이스케이프돼야 한다."""
+        resp = self._client().post("/recommend", data={
+            "min_credits": _XSS_PAYLOAD, "max_credits": "12",
+        })
+        self.assertEqual(resp.status_code, 400)
+        self.assertNotIn(_XSS_PAYLOAD.encode(), resp.data)
+        self.assertIn(b"&lt;script&gt;", resp.data)
+
+    def test_saved_schedule_name_is_escaped(self):
+        # <, > 등은 Windows 파일시스템이 파일명으로 거부해서(테스트 환경에
+        # 따라 저장 성공 여부가 달라짐) 필터명은 플랫폼 어디서나 유효하되
+        # HTML 이스케이프는 꼭 필요한 &/' 를 쓴다.
+        name = "Tom & Jerry's course"
+        client = self._client()
+        client.post("/recommend", data={"min_credits": "6", "max_credits": "12"})
+
+        resp = client.post("/save", data={"name": name})
+        self.assertNotIn(b"Tom & Jerry's", resp.data)
+        self.assertIn(b"Tom &amp; Jerry&#x27;s", resp.data)
+
+        resp = client.get("/schedules")
+        self.assertNotIn(b"Tom & Jerry's", resp.data)
+        self.assertIn(b"Tom &amp; Jerry&#x27;s", resp.data)
+
+    def test_uploaded_course_name_is_escaped_in_timetable_html(self):
+        client = self._client()
+        client.post("/upload", data={"csv_file": (io.BytesIO(_XSS_CSV), "evil.csv")},
+                     content_type="multipart/form-data")
+
+        resp = client.post("/recommend", data={"min_credits": "1", "max_credits": "6"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotIn(_XSS_PAYLOAD.encode(), resp.data)
+        self.assertIn(b"&lt;script&gt;", resp.data)
 
 
 class UploadTests(unittest.TestCase):

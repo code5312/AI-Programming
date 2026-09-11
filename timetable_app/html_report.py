@@ -4,6 +4,7 @@
 추천된 시간표를 다크 테마 HTML 페이지로 렌더링합니다.
 """
 import hashlib
+from html import escape
 from typing import List, Optional
 
 from .models import CLASS_TIME_MAX, CLASS_TIME_MIN, DAY_NAMES, Course
@@ -67,11 +68,14 @@ def generate_html(schedule: List[Course], score: Optional[float] = None) -> str:
                 if index not in timetable:
                     continue
                 timetable[index][slot.day].append({
-                    "subject": course.name,
-                    "location": course.classroom,
+                    # CSV 업로드로 들어온 과목명/교수명/강의실은 신뢰할 수 없는
+                    # 외부 입력이라, HTML에 꽂아 넣기 전에 이스케이프해야
+                    # 스크립트 삽입(XSS)을 막을 수 있다.
+                    "subject": escape(course.name),
+                    "location": escape(course.classroom),
                     "is_first": offset == 0,
                     "rowspan": slot_span if offset == 0 else 0,
-                    "professor": course.professor,
+                    "professor": escape(course.professor),
                     "credits": course.credits,
                     "color": color,
                 })
